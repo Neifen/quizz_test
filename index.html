@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ice Cream Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e8f3f1;
+    --card: #ffffff;
+    --ink: #1d2b3a;
+    --muted: #5d6b79;
+    --accent: #e0527a;
+    --line: #c9dad6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 20px;
+    background: var(--bg); color: var(--ink);
+    font-family: "DM Sans", system-ui, sans-serif; line-height: 1.5;
+  }
+  .card {
+    width: 100%; max-width: 440px; background: var(--card);
+    border-radius: 18px; padding: 32px 28px; box-shadow: 0 2px 0 var(--line);
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; line-height: 1.2; }
+  p.sub { margin: 0 0 22px; color: var(--muted); }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  label.field { display: block; font-weight: 500; margin-bottom: 14px; }
+  input[type=text], input[type=email] {
+    width: 100%; margin-top: 6px; padding: 12px 14px; font: inherit;
+    border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+  }
+  input:focus-visible, button:focus-visible, .opt:focus-within {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+  .opt {
+    display: flex; align-items: center; gap: 12px; padding: 13px 14px; margin-bottom: 10px;
+    border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer;
+  }
+  .opt:has(input:checked) { border-color: var(--accent); background: #fdeef3; }
+  .opt input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
+  button {
+    width: 100%; margin-top: 10px; padding: 13px; font: inherit; font-weight: 700;
+    color: #fff; background: var(--accent); border: 0; border-radius: 10px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .error { color: #b3261e; min-height: 1.4em; margin: 6px 0 0; font-size: .95rem; }
+  .progress { color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
+  .result { font-size: 2rem; font-weight: 700; margin: 0 0 6px; line-height: 1.2; }
+  .score { font-size: 1.1rem; color: var(--muted); margin: 0; }
+  [hidden] { display: none !important; }
+  .peek {
+    position: fixed; top: 10px; right: 12px; width: auto; margin: 0; padding: 4px 8px;
+    background: none; color: var(--muted); font-size: .75rem; font-weight: 500;
+    opacity: .35; border-radius: 6px;
+  }
+  .peek:hover, .peek:focus-visible { opacity: 1; }
+  #results { width: 100%; max-width: 640px; align-self: start; margin: 30px auto; }
+  .back { width: auto; margin: 0 0 14px; padding: 8px 14px; background: var(--card); color: var(--ink); border: 1.5px solid var(--line); }
+  .panel { background: var(--card); border-radius: 18px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 0 var(--line); }
+  .panel h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  .note { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+  .stat { background: var(--bg); border-radius: 10px; padding: 12px; }
+  .stat b { display: block; font-size: 1.4rem; }
+  .stat span { color: var(--muted); font-size: .85rem; }
+  .chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  .chart .grid { stroke: var(--line); stroke-width: 1; }
+  .chart .bar { fill: var(--accent); }
+  .chart .dot { fill: var(--muted); opacity: .45; }
+  .chart .avg { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .chart .ink { stroke: var(--ink); stroke-width: 2; }
+  .chart .box { fill: #fdeef3; stroke: var(--accent); stroke-width: 2; }
+  .chart .med { stroke: var(--ink); stroke-width: 3; }
+  .chart .out { fill: none; stroke: var(--ink); stroke-width: 2; }
+</style>
+</head>
+<body>
+<main class="card">
+
+  <!-- Screen 1: name + email -->
+  <section class="screen active" id="s-info">
+    <h1>Ice cream quiz</h1>
+    <p class="sub">Tell us who you are, then answer two questions.</p>
+    <label class="field">Name
+      <input type="text" id="name" autocomplete="name">
+    </label>
+    <label class="field">Email
+      <input type="email" id="email" autocomplete="email">
+    </label>
+    <p class="error" id="err-info"></p>
+    <button id="btn-start">Start quiz</button>
+  </section>
+
+  <!-- Screen 2: question 1 -->
+  <section class="screen" id="s-q1">
+    <div class="progress">Question 1 of 2</div>
+    <h1>What is your favorite ice cream?</h1>
+    <div id="opts-q1" style="margin-top:20px"></div>
+    <p class="error" id="err-q1"></p>
+    <button id="btn-q1">Next</button>
+  </section>
+
+  <!-- Screen 3: question 2 -->
+  <section class="screen" id="s-q2">
+    <div class="progress">Question 2 of 2</div>
+    <h1>What is your favorite state?</h1>
+    <div id="opts-q2" style="margin-top:20px"></div>
+    <p class="error" id="err-q2"></p>
+    <button id="btn-q2">See my result</button>
+  </section>
+
+  <!-- Screen 4: result -->
+  <section class="screen" id="s-result" aria-live="polite">
+    <p class="result" id="result-text"></p>
+    <p class="score" id="result-score"></p>
+  </section>
+
+</main>
+
+<button class="peek" id="btn-results">see results</button>
+
+<div id="results" hidden>
+  <button class="back" id="btn-back">Back to quiz</button>
+  <div id="results-body"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
+<script>
+  // 1) Paste your own values from Supabase → Project Settings → API
+  const SUPABASE_URL = "https://jlssybzagdmarhnjlqlq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_lqiy6CUoPUIk_BRxngv_NA_ePZWt-UC";
+  const TABLE = "results";
+
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Options. The saved number (question1 / question2) is the 1-based position in these lists.
+  const Q1 = ["Vanilla", "Chocolate", "Coffee", "Strawberry", "Mint and chocolate"];
+  const Q2 = ["Idaho", "Iowa", "Nebraska", "South Dakota", "Arkansas"];
+
+  const $ = (id) => document.getElementById(id);
+  const answers = { q1: null, q2: null };
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+    $(id).classList.add("active");
+  }
+
+  function renderOptions(containerId, name, list) {
+    $(containerId).innerHTML = list.map((label, i) =>
+      `<label class="opt"><input type="radio" name="${name}" value="${i + 1}"><span>${label}</span></label>`
+    ).join("");
+  }
+  renderOptions("opts-q1", "q1", Q1);
+  renderOptions("opts-q2", "q2", Q2);
+
+  const picked = (name) => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? Number(el.value) : null;
+  };
+
+  // Scoring: only question 1 counts. Chocolate = 2, Vanilla = 1.
+  function getResult(q1) {
+    if (q1 === 2) return { text: "You're a good person", score: 10 };
+    if (q1 === 1) return { text: "You're alright", score: 6 };
+    return { text: "Oh no", score: 1 };
+  }
+
+  $("btn-start").onclick = () => {
+    const name = $("name").value.trim();
+    const email = $("email").value.trim();
+    if (!name || !/^\S+@\S+\.\S+$/.test(email)) {
+      $("err-info").textContent = "Enter your name and a valid email address.";
+      return;
+    }
+    $("err-info").textContent = "";
+    show("s-q1");
+  };
+
+  $("btn-q1").onclick = () => {
+    answers.q1 = picked("q1");
+    if (!answers.q1) { $("err-q1").textContent = "Pick an option to continue."; return; }
+    $("err-q1").textContent = "";
+    show("s-q2");
+  };
+
+  $("btn-q2").onclick = async () => {
+    answers.q2 = picked("q2");
+    if (!answers.q2) { $("err-q2").textContent = "Pick an option to continue."; return; }
+    $("err-q2").textContent = "";
+
+    const result = getResult(answers.q1);
+    const btn = $("btn-q2");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+
+    const { error } = await db.from(TABLE).insert({
+      name: $("name").value.trim(),
+      email: $("email").value.trim(),
+      score: result.score,
+      question1: answers.q1,
+      question2: answers.q2
+    });
+
+    if (error) {
+      console.error("Supabase error:", JSON.stringify(error, null, 2));
+      $("err-q2").textContent = "Couldn’t save your result: " + (error.message || "unknown error") +
+        (error.code ? " (code " + error.code + ")" : "");
+      btn.disabled = false;
+      btn.textContent = "See my result";
+      return;
+    }
+
+    $("result-text").textContent = `${result.text} (${result.score}/10)`;
+    $("result-score").textContent = "Your answers have been saved.";
+    show("s-result");
+  };
+
+  // ---------- Results view ----------
+  const svg = (W, H, inner) => `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img">${inner}</svg>`;
+  const fmt = (n) => String(Math.round(n * 100) / 100);
+  const niceMax = (v) => Math.max(4, Math.ceil(v / 4) * 4);
+  const quant = (a, p) => {
+    const i = (a.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+    return a[lo] + (a[hi] - a[lo]) * (i - lo);
+  };
+
+  function barChart(labels, vals, max) {
+    const W = 560, H = 230, L = 34, R = 10, T = 20, B = 34, pw = W - L - R, ph = H - T - B, bw = pw / labels.length;
+    let s = "";
+    for (let g = 0; g <= 4; g++) {
+      const y = T + ph - (ph * g) / 4;
+      s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${fmt((max * g) / 4)}</text>`;
+    }
+    vals.forEach((v, i) => {
+      const h = max ? (ph * v) / max : 0, x = L + i * bw + bw * 0.15, y = T + ph - h, cx = x + bw * 0.35;
+      s += `<rect class="bar" x="${x}" y="${y}" width="${bw * 0.7}" height="${h}" rx="3"/>` +
+           `<text x="${cx}" y="${y - 5}" text-anchor="middle">${fmt(v)}</text>` +
+           `<text x="${cx}" y="${H - 12}" text-anchor="middle">${labels[i]}</text>`;
+    });
+    return svg(W, H, s);
+  }
+
+  function lineChart(avgs, scores) {
+    const W = 560, H = 240, L = 34, R = 12, T = 14, B = 34, pw = W - L - R, ph = H - T - B, n = avgs.length;
+    const X = (i) => L + (n < 2 ? pw / 2 : (pw * i) / (n - 1)), Y = (v) => T + ph - (ph * v) / 10;
+    let s = "";
+    for (let g = 0; g <= 10; g += 2) {
+      s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(g)}" y2="${Y(g)}"/><text x="${L - 6}" y="${Y(g) + 4}" text-anchor="end">${g}</text>`;
+    }
+    scores.forEach((v, i) => { s += `<circle class="dot" cx="${X(i)}" cy="${Y(v)}" r="2.5"/>`; });
+    s += `<polyline class="avg" points="${avgs.map((v, i) => `${X(i)},${Y(v)}`).join(" ")}"/>`;
+    s += `<text x="${L}" y="${H - 10}">1</text><text x="${W - R}" y="${H - 10}" text-anchor="end">${n}</text>` +
+         `<text x="${(L + W - R) / 2}" y="${H - 10}" text-anchor="middle">submission number</text>`;
+    return svg(W, H, s);
+  }
+
+  function boxPlot(sorted) {
+    const W = 560, H = 110, L = 24, R = 24, pw = W - L - R, X = (v) => L + (pw * v) / 10;
+    const q1 = quant(sorted, 0.25), med = quant(sorted, 0.5), q3 = quant(sorted, 0.75), iqr = q3 - q1;
+    const inl = sorted.filter((v) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr);
+    const out = sorted.filter((v) => !inl.includes(v));
+    const lo = inl.length ? inl[0] : sorted[0], hi = inl.length ? inl[inl.length - 1] : sorted[sorted.length - 1];
+    let s = "";
+    for (let t = 0; t <= 10; t += 2) {
+      s += `<line class="grid" x1="${X(t)}" x2="${X(t)}" y1="20" y2="76"/><text x="${X(t)}" y="96" text-anchor="middle">${t}</text>`;
+    }
+    s += `<line class="ink" x1="${X(lo)}" x2="${X(hi)}" y1="48" y2="48"/>`;
+    s += `<rect class="box" x="${X(q1)}" y="30" width="${Math.max(3, X(q3) - X(q1))}" height="36" rx="3"/>`;
+    s += `<line class="med" x1="${X(med)}" x2="${X(med)}" y1="30" y2="66"/>`;
+    out.forEach((v) => { s += `<circle class="out" cx="${X(v)}" cy="48" r="5"/>`; });
+    return { html: svg(W, H, s), out: out.length, q1, med, q3 };
+  }
+
+  const panel = (title, body, note) =>
+    `<section class="panel"><h2>${title}</h2>${body}<p class="note">${note}</p></section>`;
+
+  function renderResults(rows) {
+    const scores = rows.map((r) => r.score), n = scores.length;
+    const sum = (a) => a.reduce((x, y) => x + y, 0);
+    const mean = sum(scores) / n;
+    const sd = Math.sqrt(sum(scores.map((v) => (v - mean) ** 2)) / n);
+    const sorted = [...scores].sort((a, b) => a - b);
+
+    const bins = [0, 0, 0, 0, 0];
+    scores.forEach((s) => { bins[Math.min(4, Math.max(0, Math.floor((s - 1) / 2)))]++; });
+    let run = 0;
+    const avgs = scores.map((s, i) => (run += s) / (i + 1));
+    const box = boxPlot(sorted);
+    const q1c = Q1.map((_, i) => rows.filter((r) => r.question1 === i + 1).length);
+    const q2c = Q2.map((_, i) => rows.filter((r) => r.question2 === i + 1).length);
+    const q2avg = Q2.map((_, i) => {
+      const g = rows.filter((r) => r.question2 === i + 1);
+      return g.length ? sum(g.map((r) => r.score)) / g.length : 0;
+    });
+    const tens = scores.filter((s) => s === 10).length;
+
+    const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+    $("results-body").innerHTML =
+      panel("Summary", `<div class="stats">${stat(n, "submissions")}${stat(fmt(mean), "average score")}${stat(fmt(quant(sorted, .5)), "median")}${stat(fmt(sd), "std deviation")}${stat(Math.round((tens / n) * 100) + "%", "scored 10")}</div>`, "Scores are out of 10.") +
+      panel("Score distribution", barChart(["1–2", "3–4", "5–6", "7–8", "9–10"], bins, niceMax(Math.max(...bins))), "Number of people per score range.") +
+      panel("Running average", lineChart(avgs, scores), "The line is the average score after each submission. Dots are the individual scores.") +
+      panel("Spread and outliers", box.html, `Box = middle 50% of scores (${fmt(box.q1)}–${fmt(box.q3)}), thick line = median (${fmt(box.med)}), circles = ${box.out} outlier${box.out === 1 ? "" : "s"} (more than 1.5× the box width away).`) +
+      panel("Favorite ice cream", barChart(Q1, q1c, niceMax(Math.max(...q1c))), "Number of people per choice.") +
+      panel("Favorite state", barChart(Q2, q2c, niceMax(Math.max(...q2c))), "Number of people per choice.") +
+      panel("Average score by favorite state", barChart(Q2, q2avg, 10), "Question 2 doesn’t affect the score, so differences here are just chance.");
+  }
+
+  async function openResults() {
+    document.querySelector("main").hidden = true;
+    $("btn-results").hidden = true;
+    $("results").hidden = false;
+    $("results-body").innerHTML = '<p class="note">Loading…</p>';
+    const { data, error } = await db.from("results_public")
+      .select("score,question1,question2,created_at")
+      .order("created_at", { ascending: true });
+    if (error) { $("results-body").innerHTML = `<p class="error">Couldn’t load results: ${error.message}</p>`; return; }
+    if (!data.length) { $("results-body").innerHTML = '<p class="note">No results yet.</p>'; return; }
+    renderResults(data);
+  }
+
+  $("btn-results").onclick = openResults;
+  $("btn-back").onclick = () => {
+    $("results").hidden = true;
+    document.querySelector("main").hidden = false;
+    $("btn-results").hidden = false;
+  };
+</script>
+</body>
+</html>
